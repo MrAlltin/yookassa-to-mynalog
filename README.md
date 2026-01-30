@@ -2,7 +2,7 @@
 
 > **Автоматическая синхронизация** платежей из личного кабинета ЮKassa в приложение "Мой Налог"
 
-Данный репозиторий был создан и поддерживается в связи с тем, что **ЮKassa** остановили свой сервис авто-отправки чеков в "Мой Налог"
+<p align=center>Данный репозиторий был создан и поддерживается в связи с тем, что <b>ЮKassa</b> остановили свой сервис авто-отправки чеков в "Мой Налог"</p>
 
 ---
 
@@ -144,6 +144,8 @@ docker compose up -d && docker compose logs -f -t
 
 > USDT TRC20: TL6gHETnKqNWV4D6GjiKKahkBsAwcyWfo8
 
-<a href="https://t.me/grand_van" target="_blank" rel="noopener noreferrer">
-    <img src="https://img.shields.io/badge/Telegram-GrandVan-purple?logo=telegram&logoColor=white&labelColor=blue" alt="Chat me on Telegram">
-</a>
+<p align=center>
+    <a href="https://t.me/grand_van" target="_blank" rel="noopener noreferrer">
+        <img src="https://img.shields.io/badge/Telegram-GrandVan-purple?logo=telegram&logoColor=white&labelColor=blue" alt="Chat me on Telegram">
+    </a>
+</p>
