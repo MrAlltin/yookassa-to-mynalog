@@ -37,8 +37,8 @@ sudo mkdir -p /opt/yookassa-to-mynalog/logs && cd /opt/yookassa-to-mynalog
 
 ### 3. Скачиваем файлы `.env.example` (его сразу ренеймим в `.env`) и `docker-compose.yml`
 ```bash
-sudo wget -O .env https://raw.githubusercontent.com/grnfls709/yookassa-to-mynalog/refs/heads/master/.env.example && \
-sudo wget -O docker-compose.yml https://raw.githubusercontent.com/grnfls709/yookassa-to-mynalog/refs/heads/master/docker-compose.yml
+sudo wget -O .env https://raw.githubusercontent.com/grandvan709/yookassa-to-mynalog/refs/heads/master/.env.example && \
+sudo wget -O docker-compose.yml https://raw.githubusercontent.com/grandvan709/yookassa-to-mynalog/refs/heads/master/docker-compose.yml
 ```
 
 ### 4. Заполняем файл `.env` необходимыми значениями (см раздел "Конфигурация")
