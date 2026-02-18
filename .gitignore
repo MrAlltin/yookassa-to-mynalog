@@ -16,3 +16,6 @@ logs/
 
 # Git
 .git
+
+#AI
+.claude/

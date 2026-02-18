@@ -25,6 +25,48 @@ logging.basicConfig(
 def generate_device_id_from_login(login: str) -> str:
     return hashlib.sha256(login.encode('utf-8')).hexdigest()[:21]
 
+
+class SafeFormatDict(dict):
+    """Словарь, который при отсутствии ключа возвращает плейсхолдер как есть вместо ошибки."""
+    def __missing__(self, key):
+        logging.warning(f"Неизвестная переменная в шаблоне: {{{key}}}")
+        return f"{{{key}}}"
+
+
+def build_template_vars(payment) -> dict:
+    """
+    Собирает словарь переменных из платежа YooKassa для подстановки в шаблон.
+
+    Доступные переменные:
+        {id}                    — ID платежа в YooKassa (UUID)
+        {description}           — описание платежа или ID, если описания нет (обратная совместимость)
+        {payment_description}   — только описание платежа (пустая строка, если нет)
+        {order_number}          — номер счёта/заказа из metadata (например: 1227418-1)
+        {invoice_id}            — ID счёта из invoice_details (пустая строка, если нет)
+        {customer_name}         — название/имя из счёта (metadata custName)
+        {amount}                — сумма платежа
+        {merchant_customer_id}  — ID покупателя в вашей системе (пустая строка, если нет)
+    """
+    metadata = payment.metadata or {}
+
+    invoice_id = ""
+    if payment.invoice_details and hasattr(payment.invoice_details, 'id'):
+        invoice_id = payment.invoice_details.id or ""
+
+    order_number = metadata.get("orderNumber") or metadata.get("dashboardInvoiceOriginalNumber") or ""
+    customer_name = metadata.get("custName") or metadata.get("customerNumber") or ""
+
+    return SafeFormatDict({
+        "description": payment.description or payment.id,
+        "id": payment.id,
+        "payment_description": payment.description or "",
+        "order_number": order_number,
+        "invoice_id": invoice_id,
+        "customer_name": customer_name,
+        "amount": payment.amount.value,
+        "merchant_customer_id": getattr(payment, 'merchant_customer_id', "") or "",
+    })
+
 class MoyNalogAPI:
     def __init__(self, login, password):
         self.login = login
@@ -236,10 +278,9 @@ class SyncManager:
                 try:
                     amount = float(payment.amount.value)
                     payment_date = datetime.fromisoformat(payment.created_at.replace('Z', '+00:00'))
-                    
-                    description = config.INCOME_DESCRIPTION_TEMPLATE.format(
-                        description=payment.description or payment.id
-                    )
+
+                    template_vars = build_template_vars(payment)
+                    description = config.INCOME_DESCRIPTION_TEMPLATE.format_map(template_vars)
                     
                     success = await self.nalog.add_income(description, amount, payment_date)
                     

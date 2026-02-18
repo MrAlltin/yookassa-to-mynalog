@@ -63,8 +63,33 @@ sudo nano .env
 |-----------|:----------:|---------|
 | `DEVICE_ID` | Генерация хеша из ИНН (21 символ) | Специальный ID, используемый для авторизации в "Мой Налог" |
 | `SYNC_START_DATE` | -24ч | Дата начала синхронизации (YYYY-MM-DD) |
-| `INCOME_DESCRIPTION_TEMPLATE` | `Платеж #{description}` | Шаблон описания дохода |
+| `INCOME_DESCRIPTION_TEMPLATE` | `Платеж #{description}` | Шаблон описания дохода (см. ниже) |
 | `CRON_SCHEDULE` | `0 */4 * * *` | Расписание cron (каждые 4 часа) |
+
+### Переменные шаблона INCOME_DESCRIPTION_TEMPLATE
+
+В шаблоне описания дохода можно использовать следующие переменные:
+
+| Переменная | Описание |
+|-----------|---------|
+| `{description}` | Описание платежа из ЮKassa, либо ID платежа если описания нет |
+| `{id}` | ID платежа в ЮKassa (UUID) |
+| `{payment_description}` | Только описание платежа (пустая строка, если описания нет) |
+| `{order_number}` | Номер счёта/заказа из ЮKassa (например: `1227418-1`) |
+| `{invoice_id}` | ID счёта из invoice_details API (пустая строка, если нет) |
+| `{customer_name}` | Название/имя из счёта ЮKassa |
+| `{amount}` | Сумма платежа |
+| `{merchant_customer_id}` | ID покупателя в вашей системе |
+
+### Примеры INCOME_DESCRIPTION_TEMPLATE
+
+```env
+INCOME_DESCRIPTION_TEMPLATE='Платеж #{description}'                                    # описание платежа, или ID если нет описания
+INCOME_DESCRIPTION_TEMPLATE='Оплата по счёту №{order_number}'                          # номер счёта из ЮKassa
+INCOME_DESCRIPTION_TEMPLATE='{customer_name} — счёт №{order_number}'                   # название + номер счёта
+INCOME_DESCRIPTION_TEMPLATE='Оплата услуг: {payment_description} ({amount} руб.)'      # описание + сумма
+INCOME_DESCRIPTION_TEMPLATE='Платеж {id}'                                              # ID платежа (UUID)
+```
 
 ### Примеры CRON_SCHEDULE
 
