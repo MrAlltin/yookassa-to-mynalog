@@ -218,14 +218,17 @@ class SyncManager:
         if os.path.exists(self.state_file):
             try:
                 with open(self.state_file, 'r') as f:
-                    return json.load(f)
+                    state = json.load(f)
+                if "pending_payments" not in state:
+                    state["pending_payments"] = []
+                return state
             except:
                 pass
-        
+
         if config.SYNC_START_DATE:
-            return {"last_sync_time": f"{config.SYNC_START_DATE}T00:00:00Z", "processed_payments": []}
-        
-        return {"last_sync_time": (datetime.now() - timedelta(days=1)).isoformat(), "processed_payments": []}
+            return {"last_sync_time": f"{config.SYNC_START_DATE}T00:00:00Z", "processed_payments": [], "pending_payments": []}
+
+        return {"last_sync_time": (datetime.now() - timedelta(days=1)).isoformat(), "processed_payments": [], "pending_payments": []}
 
     def save_state(self):
         with open(self.state_file, 'w') as f:
@@ -234,33 +237,39 @@ class SyncManager:
     async def get_new_yookassa_payments(self):
         new_payments = []
         last_sync = self.state.get("last_sync_time")
-        
+        skip_ids = set(self.state["processed_payments"]) | set(self.state["pending_payments"])
+
         params = {
             "status": "succeeded",
             "created_at.gte": last_sync
         }
-        
+
         try:
             res = Payment.list(params)
             for payment in res.items:
-                if payment.id not in self.state["processed_payments"]:
+                if payment.id not in skip_ids:
                     new_payments.append(payment)
-            
+
             while res.next_cursor:
                 params["cursor"] = res.next_cursor
                 res = Payment.list(params)
                 for payment in res.items:
-                    if payment.id not in self.state["processed_payments"]:
+                    if payment.id not in skip_ids:
                         new_payments.append(payment)
         except Exception as e:
             logging.error(f"Ошибка ЮKassa: {e}")
-            
+
         return new_payments
 
     async def sync(self):
         logging.info("="*60)
         logging.info("Начало синхронизации...")
         logging.info(f"Последняя синхронизация: {self.state.get('last_sync_time')}")
+
+        pending = self.state.get("pending_payments", [])
+        if pending:
+            logging.warning(f"⚠ Обнаружено {len(pending)} платежей в статусе 'pending' (возможно, были отправлены в налоговую, но статус неизвестен): {pending}")
+            logging.warning("Эти платежи пропущены для предотвращения дублей. Проверьте их вручную в ЛК налоговой.")
         
         try:
             new_payments = await self.get_new_yookassa_payments()
@@ -281,17 +290,26 @@ class SyncManager:
 
                     template_vars = build_template_vars(payment)
                     description = config.INCOME_DESCRIPTION_TEMPLATE.format_map(template_vars)
-                    
+
+                    # Помечаем платёж как "в обработке" ДО отправки в налоговую,
+                    # чтобы при сбое он не был отправлен повторно (защита от дублей)
+                    self.state["pending_payments"].append(payment.id)
+                    self.save_state()
+
                     success = await self.nalog.add_income(description, amount, payment_date)
-                    
+
+                    # Переносим из pending в processed
+                    self.state["pending_payments"].remove(payment.id)
                     if success:
                         self.state["processed_payments"].append(payment.id)
                         self.state["last_sync_time"] = payment.created_at
                         self.save_state()
                         successful += 1
                     else:
+                        self.save_state()
                         failed += 1
-                        logging.warning(f"Пропуск платежа {payment.id} из-за ошибки.")
+                        logging.warning(f"Пропуск платежа {payment.id} из-за ошибки. "
+                                        f"Платёж заблокирован от повторной отправки для предотвращения дублей.")
                 except Exception as e:
                     failed += 1
                     logging.error(f"Ошибка при обработке платежа {payment.id}: {e}")
