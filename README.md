@@ -50,12 +50,31 @@ sudo nano .env
 
 ### Обязательные переменные
 
-| Переменная | Описание |
-|-----------|---------|
-| `YOOKASSA_SHOP_ID` | ID магазина в ЮKassa |
-| `YOOKASSA_API_KEY` | API ключ ЮKassa |
-| `MOY_NALOG_LOGIN` | ИНН в Мой Налог |
-| `MOY_NALOG_PASSWORD` | Пароль в Мой Налог |
+<table>
+  <tr>
+    <th>Переменная</th>
+    <th>Описание</th>
+  </tr>
+  <tr>
+    <td><code>YOOKASSA_SHOP_ID</code></td>
+    <td>ID магазина в ЮKassa</td>
+  </tr>
+  <tr>
+    <td><code>YOOKASSA_API_KEY</code></td>
+    <td>API ключ ЮKassa</td>
+  </tr>
+  <tr>
+    <td colspan="2">Логин и пароль от "Мой Налог" такие же как и от личного кабинета налоговой физлиц</td>
+  </tr>
+  <tr>
+    <td><code>MOY_NALOG_LOGIN</code></td>
+    <td>ИНН в Мой Налог</td>
+  </tr>
+  <tr>
+    <td><code>MOY_NALOG_PASSWORD</code></td>
+    <td>Пароль в Мой Налог</td>
+  </tr>
+</table>
 
 ### Опциональные переменные
 
@@ -162,6 +181,9 @@ sudo docker compose pull
 ```bash
 sudo docker compose up -d && sudo docker compose logs -f -t
 ```
+
+### 5. Проверка docker-compose.yml и прочих файлов
+Перед обновлениями и запусками - убедитесь, что ваши файлы **docker-compose.yml** и **.env** *(и прочие, которые могут быть в будущем)* соответствуют последним версиям из репозитория!
 
 > Чтобы не писать `sudo` перед каждой командой `docker` - нужно внести пользователя, из под которого вы работаете, в группу **docker** следующей командой: `sudo usermod -aG docker <username>`. А затем перезайти на сервер.
 ---
