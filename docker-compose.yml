@@ -12,3 +12,4 @@ services:
       - 77.88.8.1
     environment:
       - PYTHONUNBUFFERED=1
+      - TZ=Europe/Moscow

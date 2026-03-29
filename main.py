@@ -4,7 +4,7 @@ import os
 import logging
 import httpx
 import hashlib
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from yookassa import Configuration, Payment, Refund
 from tenacity import retry, stop_after_attempt, wait_exponential
 import config
@@ -130,13 +130,10 @@ class MoyNalogAPI:
                 return None
 
         url = "https://lknpd.nalog.ru/api/v1/income"
-        
-        if date.tzinfo is None:
-            tz = timezone(timedelta(hours=11))
-            date = date.replace(tzinfo=tz)
-        
+
+        date = date.astimezone()
         iso_date = date.isoformat(timespec='seconds')
-        request_time = datetime.now(date.tzinfo).isoformat(timespec='seconds')
+        request_time = datetime.now().astimezone().isoformat(timespec='seconds')
         
         payload = {
             "operationTime": iso_date,
@@ -197,7 +194,7 @@ class MoyNalogAPI:
 
         url = "https://lknpd.nalog.ru/api/v1/cancel"
 
-        now = datetime.now(timezone(timedelta(hours=11)))
+        now = datetime.now().astimezone()
         iso_now = now.isoformat(timespec='seconds')
 
         payload = {
