@@ -9,6 +9,7 @@ echo ""
 TELEGRAM_STARTUP_NOTIFY=1 python /app/main.py
 
 CRON_SCHEDULE=$(python -c "import config; print(config.CRON_SCHEDULE)")
+TZ=$(python -c "import config; print(config.TZ or '')")
 
 echo ""
 echo "Расписание: $CRON_SCHEDULE"

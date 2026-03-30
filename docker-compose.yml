@@ -10,7 +10,5 @@ services:
     dns:
       - 77.88.8.8
       - 77.88.8.1
-    env_file:
-      - .env
     environment:
       - PYTHONUNBUFFERED=1

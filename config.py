@@ -1,12 +1,19 @@
 import os
+import time
 from dotenv import load_dotenv
 
 load_dotenv()
+
+TZ = os.getenv("TZ")
+if TZ:
+    os.environ["TZ"] = TZ
+    time.tzset()
 
 YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID")
 YOOKASSA_API_KEY = os.getenv("YOOKASSA_API_KEY")
 MOY_NALOG_LOGIN = os.getenv("MOY_NALOG_LOGIN")
 MOY_NALOG_PASSWORD = os.getenv("MOY_NALOG_PASSWORD")
+
 DEVICE_ID = os.getenv("DEVICE_ID")
 SYNC_START_DATE = os.getenv("SYNC_START_DATE")
 INCOME_DESCRIPTION_TEMPLATE = os.getenv("INCOME_DESCRIPTION_TEMPLATE", "Платеж #{description}")
