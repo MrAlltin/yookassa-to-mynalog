@@ -22,6 +22,7 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 def generate_device_id_from_login(login: str) -> str:
     return hashlib.sha256(login.encode('utf-8')).hexdigest()[:21]
@@ -230,6 +231,48 @@ class MoyNalogAPI:
             logging.error(f"Исключение при аннулировании чека: {e}")
             return False
 
+    async def find_income(self, name, amount):
+        if not self.token:
+            try:
+                await self.authenticate()
+            except Exception as e:
+                logging.error(f"Не удалось авторизоваться для проверки чеков: {e}")
+                return None
+
+        now = datetime.now().astimezone()
+        from_date = (now - timedelta(days=7)).isoformat(timespec='milliseconds')
+        to_date = now.isoformat(timespec='milliseconds')
+
+        url = f"https://lknpd.nalog.ru/api/v1/incomes?from={from_date}&to={to_date}&offset=0&sortBy=operation_time:desc&limit=50"
+
+        headers = self.headers.copy()
+        headers["Authorization"] = f"Bearer {self.token}"
+
+        try:
+            response = await self.client.get(url, headers=headers)
+
+            if response.status_code == 401:
+                await self.authenticate()
+                headers["Authorization"] = f"Bearer {self.token}"
+                response = await self.client.get(url, headers=headers)
+
+            if response.status_code != 200:
+                logging.error(f"Ошибка получения списка чеков (Код {response.status_code}): {response.text}")
+                return None
+
+            data = response.json()
+            for income in data.get("content", []):
+                if income.get("cancellationInfo"):
+                    continue
+                if income.get("name") == name and float(income.get("totalAmount", 0)) == float(amount):
+                    receipt_uuid = income.get("approvedReceiptUuid")
+                    logging.info(f"✓ Чек найден в налоговой при верификации: {receipt_uuid}")
+                    return receipt_uuid
+        except Exception as e:
+            logging.error(f"Исключение при проверке чеков: {e}")
+
+        return None
+
     async def close(self):
         await self.client.aclose()
 
@@ -364,6 +407,8 @@ class SyncManager:
         if pending:
             logging.warning(f"⚠ Обнаружено {len(pending)} платежей в статусе 'pending' (возможно, были отправлены в налоговую, но статус неизвестен): {pending}")
             logging.warning("Эти платежи пропущены для предотвращения дублей. Проверьте их вручную в ЛК налоговой.")
+            if self.notifier:
+                self.notifier.on_pending_found(len(pending))
         
         try:
             new_payments = await self.get_new_yookassa_payments()
@@ -386,12 +431,24 @@ class SyncManager:
                     template_vars = build_template_vars(payment)
                     description = config.INCOME_DESCRIPTION_TEMPLATE.format_map(template_vars)
 
-                    self.state["pending_payments"].append(payment.id)
-                    self.save_state()
+                    receipt_uuid = None
 
-                    receipt_uuid = await self.nalog.add_income(description, amount, payment_date)
+                    for attempt in range(1, 4):
+                        receipt_uuid = await self.nalog.add_income(description, amount, payment_date)
+                        if receipt_uuid:
+                            break
 
-                    self.state["pending_payments"].remove(payment.id)
+                        logging.warning(f"Попытка {attempt}/3: add_income не вернул receiptUuid для {payment.id}, проверяю наличие чека в налоговой...")
+                        receipt_uuid = await self.nalog.find_income(description, amount)
+                        if receipt_uuid:
+                            logging.info(f"✓ Чек найден в налоговой (был создан несмотря на ошибку ответа)")
+                            if self.notifier:
+                                self.notifier.on_payment_verified()
+                            break
+
+                        if attempt < 3:
+                            logging.info(f"Чек не найден, повторная попытка...")
+
                     if receipt_uuid:
                         self.state["processed_payments"].append(payment.id)
                         self.state["receipt_map"][payment.id] = receipt_uuid
@@ -401,10 +458,9 @@ class SyncManager:
                         if self.notifier:
                             self.notifier.on_payment_success(amount)
                     else:
-                        self.save_state()
                         failed += 1
-                        logging.warning(f"Пропуск платежа {payment.id} из-за ошибки. "
-                                        f"Платёж заблокирован от повторной отправки для предотвращения дублей.")
+                        logging.warning(f"Пропуск платежа {payment.id}: не удалось зарегистрировать после 3 попыток. "
+                                        f"Повторная попытка при следующей синхронизации.")
                         if self.notifier:
                             self.notifier.on_payment_error(payment.id, "ошибка регистрации дохода")
                 except Exception as e:
@@ -433,6 +489,8 @@ class SyncManager:
                             self.state["processed_refunds"].append(refund.id)
                             self.state["last_refund_sync_time"] = refund.created_at
                             self.save_state()
+                            if self.notifier:
+                                self.notifier.on_refund_skipped()
                             continue
 
                         success = await self.nalog.cancel_income(receipt_uuid)
@@ -460,7 +518,7 @@ class SyncManager:
             else:
                 logging.info("✓ Новых возвратов не найдено.")
 
-            if not new_payments and not new_refunds and self.notifier:
+            if not new_payments and not new_refunds and self.notifier and not pending:
                 await self.notifier.send_no_payments()
 
         except Exception as e:

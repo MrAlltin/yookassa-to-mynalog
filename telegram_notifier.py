@@ -32,6 +32,9 @@ class TelegramNotifier:
         self._found_count: int = 0
         self._cancelled: int = 0
         self._cancel_errors: int = 0
+        self._verified: int = 0
+        self._pending_count: int = 0
+        self._refund_skipped: int = 0
 
     def on_sync_start(self, found_count: int):
         self._start_time = datetime.now()
@@ -40,6 +43,11 @@ class TelegramNotifier:
         self._errors = []
         self._cancelled = 0
         self._cancel_errors = 0
+        self._verified = 0
+        self._refund_skipped = 0
+
+    def on_pending_found(self, count: int):
+        self._pending_count = count
 
     def on_payment_success(self, amount: float):
         self._payments.append(amount)
@@ -52,6 +60,12 @@ class TelegramNotifier:
 
     def on_refund_error(self):
         self._cancel_errors += 1
+
+    def on_payment_verified(self):
+        self._verified += 1
+
+    def on_refund_skipped(self):
+        self._refund_skipped += 1
 
     async def send_startup(self):
         date_str = datetime.now().strftime("%d.%m.%Y %H:%M")
@@ -75,7 +89,9 @@ class TelegramNotifier:
         await self._send(text)
 
     async def send_summary(self):
-        if not self._payments and not self._errors and not self._cancelled and not self._cancel_errors:
+        if (not self._payments and not self._errors and not self._cancelled
+                and not self._cancel_errors and not self._pending_count
+                and not self._refund_skipped):
             return
 
         text = self._build_message()
@@ -98,6 +114,10 @@ class TelegramNotifier:
             "",
         ]
 
+        if self._pending_count:
+            lines.append(f"⏳ Pending-платежей: <b>{self._pending_count}</b> (требуют ручной проверки)")
+            lines.append("")
+
         if successful or failed:
             if failed == 0:
                 lines.append(
@@ -115,6 +135,9 @@ class TelegramNotifier:
             for amount in self._payments:
                 breakdown[amount] += 1
 
+            if self._verified:
+                lines.append(f"🔍 Из них верифицировано через API: {self._verified}")
+
             if breakdown:
                 lines.append("")
                 lines.append("📊 Разбивка:")
@@ -123,13 +146,15 @@ class TelegramNotifier:
                     word = _plural(count, "платёж", "платежа", "платежей")
                     lines.append(f"  • {amount:g} руб. — {count} {word}")
 
-        if self._cancelled or self._cancel_errors:
+        if self._cancelled or self._cancel_errors or self._refund_skipped:
             lines.append("")
             if self._cancelled:
                 word = _plural(self._cancelled, "чек аннулирован", "чека аннулировано", "чеков аннулировано")
                 lines.append(f"↩️ Возвраты: <b>{self._cancelled}</b> {word}")
             if self._cancel_errors:
                 lines.append(f"⚠️ Ошибок аннулирования: <b>{self._cancel_errors}</b>")
+            if self._refund_skipped:
+                lines.append(f"⏭ Пропущено возвратов (нет чека): <b>{self._refund_skipped}</b>")
 
         if self._errors:
             lines.append("")
@@ -158,9 +183,8 @@ class TelegramNotifier:
                 if resp.status_code == 200:
                     logger.info("✓ Уведомление отправлено в Telegram.")
                 else:
-                    logger.warning(
-                        f"Telegram API вернул {resp.status_code}: {resp.text}"
-                    )
+                    safe_text = resp.text.replace(self.bot_token, "***")
+                    logger.warning(f"Telegram API вернул {resp.status_code}: {safe_text}")
         except Exception as e:
-            safe_msg = str(e).replace(self.bot_token, "<redacted>")
+            safe_msg = str(e).replace(self.bot_token, "***")
             logger.warning(f"Не удалось отправить уведомление в Telegram: {safe_msg}")
