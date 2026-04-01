@@ -1,4 +1,4 @@
-name: Запрос фунционала
+name: Запрос функционала
 title: "[Feature] "
 description: Предложите новый функционал
 
@@ -6,34 +6,26 @@ body:
   - type: markdown
     attributes:
       value: |
-        ## Прежде чем создавать проблему, убедитесь в следующем:
-        1. Обязательно укажите краткий и понятный заголовок, чтобы другим было проще найти вашу проблему.
-        2. Убедитесь, что похожая проблема ещё не создана в разделе [существующих проблем](https://github.com/grandvan709/yookassa-to-mynalog/issues?q=is%3Aissue), иначе обсудите свой вопрос там.
-        3. Опишите проблему подробно и по шаблону, иначе заявка будет закрыта без рассмотрения.
+        ## Прежде чем создавать запрос, убедитесь в следующем:
+        1. Обязательно укажите краткий и понятный заголовок, чтобы другим было проще найти ваш запрос.
+        2. Убедитесь, что похожий запрос ещё не создан в разделе [существующих](https://github.com/grandvan709/yookassa-to-mynalog/issues?q=is%3Aissue), иначе обсудите свой вопрос там.
 
   - type: textarea
     id: description
     attributes:
-      label: Описание фунции
-      description: Четкое и краткое описание функции
+      label: Описание функции
+      description: Четкое и краткое описание предлагаемой функции
     validations:
       required: true
   - type: textarea
     attributes:
       label: Сценарий использования
-      description: Пожалуйста, опишите сценарий использования вашего запроса на функцию
+      description: Опишите ситуацию, в которой эта функция была бы полезна
     validations:
       required: true
-  - type: checkboxes
-    id: os-labels
+  - type: textarea
     attributes:
-      label: Операционная система
-      description: Пожалуйста, выберите операционную систему(ы), для которых предназначена эта функция (выберите минимум одну)
-      options:
-        - label: Debian
-        - label: Ubuntu
-        - label: Other Linux
-        - label: Windows
-        - label: MacOS
+      label: Возможная реализация
+      description: Если у вас есть идеи по реализации — опишите их здесь
     validations:
-      required: true
+      required: false

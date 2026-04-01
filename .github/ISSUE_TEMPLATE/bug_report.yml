@@ -17,10 +17,11 @@ body:
       description: Подробно и ясно опишите возникшую у вас проблему, при возможности приложите скриншоты
     validations:
       required: true
-  - type: textarea
+  - type: input
     attributes:
-      label: Версия
-      description: Пожалуйста, укажите конкретную версию yookassa-to-mynalog
+      label: Версия образа
+      description: Тег Docker-образа (например 2.4.3 или latest)
+      placeholder: "2.4.3"
     validations:
       required: true
   - type: textarea
@@ -31,18 +32,33 @@ body:
       required: true
   - type: dropdown
     attributes:
-      label: Операционная система
+      label: Операционная система хоста
       options:
-        - Debian
-        - Ubuntu
+        - Debian 12
+        - Debian 13
+        - Ubuntu 22.04
+        - Ubuntu 24.04
         - Other Linux
-        - Windows
-        - MacOS
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Версия Docker
+      description: "Результат команды: docker -v"
+      placeholder: "Docker version 29.3.0"
+    validations:
+      required: false
+  - type: textarea
+    attributes:
+      label: Логи
+      description: "Вставьте логи из команды: docker compose logs -ft"
+      render: shell
     validations:
       required: true
   - type: textarea
     attributes:
-      label: Логи (вставьте содержимое логов напрямую)
-      description: Пожалуйста, предоставьте полный лог при запуске **python main.py** или **docker compose up -d && docker compose logs -ft**
+      label: Содержимое .env (без секретов)
+      description: Вставьте ваш .env, заменив токены/пароли на ***
+      render: shell
     validations:
-      required: true
+      required: false
