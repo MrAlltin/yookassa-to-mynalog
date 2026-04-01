@@ -22,6 +22,7 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 def generate_device_id_from_login(login: str) -> str:
     return hashlib.sha256(login.encode('utf-8')).hexdigest()[:21]
