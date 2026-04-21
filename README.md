@@ -40,8 +40,8 @@ sudo mkdir -p /opt/yookassa-to-mynalog/logs && cd /opt/yookassa-to-mynalog
 
 ### 3. Скачиваем файлы `.env.example` (его сразу ренеймим в `.env`) и `docker-compose.yml`
 ```bash
-sudo wget -O .env https://raw.githubusercontent.com/grandvan709/yookassa-to-mynalog/refs/heads/master/.env.example && \
-sudo wget -O docker-compose.yml https://raw.githubusercontent.com/grandvan709/yookassa-to-mynalog/refs/heads/master/docker-compose.yml
+sudo wget -O .env https://raw.githubusercontent.com/MrAlltin/yookassa-to-mynalog/refs/heads/master/.env.example && \
+sudo wget -O docker-compose.yml https://raw.githubusercontent.com/MrAlltin/yookassa-to-mynalog/refs/heads/master/docker-compose.yml
 ```
 
 ### 4. Заполняем файл `.env` необходимыми значениями (см раздел "Конфигурация")
@@ -216,13 +216,3 @@ sudo docker compose up -d && sudo docker compose logs -f -t
 
 > Чтобы не писать `sudo` перед каждой командой `docker` - нужно внести пользователя, из под которого вы работаете, в группу **docker** следующей командой: `sudo usermod -aG docker <username>`. А затем перезайти на сервер.
 ---
-
-> **Ставь ⭐** и не пропусти регулярные обновления для поддержания актуальности скрипта и оптимальной автоматизации
-
-> USDT TRC20: TL6gHETnKqNWV4D6GjiKKahkBsAwcyWfo8 | [ЮKassa (руб.)](https://yookassa.ru/my/i/aZUoMtbfNgP8/l)
-
-<p align=center>
-    <a href="https://t.me/grand_van" target="_blank" rel="noopener noreferrer">
-        <img src="https://img.shields.io/badge/Telegram-GrandVan-purple?logo=telegram&logoColor=white&labelColor=blue" alt="Chat me on Telegram">
-    </a>
-</p>
