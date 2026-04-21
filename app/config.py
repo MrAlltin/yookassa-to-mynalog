@@ -9,10 +9,25 @@ if TZ:
     os.environ["TZ"] = TZ
     time.tzset()
 
+
+def _read_secret(env_var: str, secret_name: str) -> str | None:
+    """Читает значение из переменной окружения или из файла Docker Secret.
+    Приоритет: переменная окружения → /run/secrets/<secret_name>.
+    """
+    value = os.getenv(env_var)
+    if value:
+        return value
+    secret_path = f"/run/secrets/{secret_name}"
+    if os.path.exists(secret_path):
+        with open(secret_path) as f:
+            return f.read().strip()
+    return None
+
+
 YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID")
-YOOKASSA_API_KEY = os.getenv("YOOKASSA_API_KEY")
+YOOKASSA_API_KEY = _read_secret("YOOKASSA_API_KEY", "yookassa_api_key")
 MOY_NALOG_LOGIN = os.getenv("MOY_NALOG_LOGIN")
-MOY_NALOG_PASSWORD = os.getenv("MOY_NALOG_PASSWORD")
+MOY_NALOG_PASSWORD = _read_secret("MOY_NALOG_PASSWORD", "moy_nalog_password")
 
 DEVICE_ID = os.getenv("DEVICE_ID")
 SYNC_START_DATE = os.getenv("SYNC_START_DATE")

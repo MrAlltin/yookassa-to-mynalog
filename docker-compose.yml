@@ -12,3 +12,12 @@ services:
       - 77.88.8.1
     environment:
       - PYTHONUNBUFFERED=1
+    secrets:
+      - yookassa_api_key
+      - moy_nalog_password
+
+secrets:
+  yookassa_api_key:
+    file: ./secrets/yookassa_api_key.txt
+  moy_nalog_password:
+    file: ./secrets/moy_nalog_password.txt
