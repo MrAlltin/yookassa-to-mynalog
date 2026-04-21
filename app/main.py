@@ -2,6 +2,7 @@ import asyncio
 import json
 import os
 import logging
+from logging.handlers import RotatingFileHandler
 from datetime import datetime, timedelta
 from yookassa import Configuration, Payment, Refund
 import config
@@ -17,7 +18,12 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
-        logging.FileHandler(f"{LOG_DIR}/sync.log", encoding='utf-8'),
+        RotatingFileHandler(
+            f"{LOG_DIR}/sync.log",
+            maxBytes=5 * 1024 * 1024,
+            backupCount=3,
+            encoding='utf-8'
+        ),
         logging.StreamHandler()
     ]
 )
@@ -76,8 +82,13 @@ class SyncManager:
                 with open(self.state_file, 'r') as f:
                     state = json.load(f)
                 return self._ensure_state_fields(state)
-            except:
-                pass
+            except Exception as e:
+                logging.critical(
+                    f"Не удалось прочитать файл состояния '{self.state_file}': {e}. "
+                    "Запуск остановлен во избежание дублирования чеков. "
+                    "Проверьте файл вручную или удалите его, если он повреждён."
+                )
+                raise RuntimeError(f"Повреждён файл состояния: {e}") from e
 
         base = {
             "last_sync_time": f"{config.SYNC_START_DATE}T00:00:00Z" if config.SYNC_START_DATE else (datetime.now() - timedelta(days=1)).isoformat(),
@@ -90,8 +101,10 @@ class SyncManager:
         return base
 
     def save_state(self):
-        with open(self.state_file, 'w') as f:
-            json.dump(self.state, f)
+        tmp = self.state_file + ".tmp"
+        with open(tmp, 'w') as f:
+            json.dump(self.state, f, indent=2)
+        os.replace(tmp, self.state_file)
 
     async def get_new_yookassa_payments(self):
         new_payments = []
@@ -170,6 +183,7 @@ class SyncManager:
 
             successful = 0
             failed = 0
+            sync_start_time = datetime.now().astimezone().isoformat(timespec='seconds')
 
             for payment in new_payments:
                 try:
@@ -187,7 +201,7 @@ class SyncManager:
                             break
 
                         logging.warning(f"Попытка {attempt}/3: add_income не вернул receiptUuid для {payment.id}, проверяю наличие чека в налоговой...")
-                        receipt_uuid = await self.nalog.find_income(description, amount)
+                        receipt_uuid = await self.nalog.find_income(description, amount, payment.id, payment_date)
                         if receipt_uuid:
                             logging.info(f"✓ Чек найден в налоговой (был создан несмотря на ошибку ответа)")
                             if self.notifier:
@@ -200,7 +214,6 @@ class SyncManager:
                     if receipt_uuid:
                         self.state["processed_payments"].append(payment.id)
                         self.state["receipt_map"][payment.id] = receipt_uuid
-                        self.state["last_sync_time"] = payment.created_at
                         self.save_state()
                         successful += 1
                         if self.notifier:
@@ -219,6 +232,9 @@ class SyncManager:
 
             if new_payments:
                 logging.info(f"Результат платежей: успешно={successful}, ошибок={failed}")
+                if successful > 0:
+                    self.state["last_sync_time"] = sync_start_time
+                    self.save_state()
 
             new_refunds = await self.get_new_refunds()
 

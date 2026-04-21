@@ -104,7 +104,7 @@ class MoyNalogAPI:
                 "inn": None,
                 "incomeType": "FROM_INDIVIDUAL"
             },
-            "paymentType": "CASH",
+            "paymentType": config.PAYMENT_TYPE,
             "ignoreMaxTotalIncomeRestriction": False
         }
 
@@ -182,7 +182,7 @@ class MoyNalogAPI:
             logging.error(f"Исключение при аннулировании чека: {e}")
             return False
 
-    async def find_income(self, name, amount):
+    async def find_income(self, name, amount, payment_id: str, payment_date: datetime):
         if not self.token:
             try:
                 await self.authenticate()
@@ -191,8 +191,9 @@ class MoyNalogAPI:
                 return None
 
         now = datetime.now().astimezone()
-        from_date = (now - timedelta(days=7)).isoformat(timespec='milliseconds')
-        to_date = now.isoformat(timespec='milliseconds')
+        # Ищем в узком окне вокруг даты платежа (±1 час), чтобы не путать одинаковые суммы
+        from_date = (payment_date - timedelta(hours=1)).isoformat(timespec='milliseconds')
+        to_date = min(payment_date + timedelta(hours=1), now).isoformat(timespec='milliseconds')
 
         url = f"https://lknpd.nalog.ru/api/v1/incomes?from={from_date}&to={to_date}&offset=0&sortBy=operation_time:desc&limit=50"
 
@@ -215,9 +216,15 @@ class MoyNalogAPI:
             for income in data.get("content", []):
                 if income.get("cancellationInfo"):
                     continue
+                # Первично ищем по payment_id в поле name (если шаблон содержит {id})
+                if payment_id in (income.get("name") or ""):
+                    receipt_uuid = income.get("approvedReceiptUuid")
+                    logging.info(f"✓ Чек найден по payment_id при верификации: {receipt_uuid}")
+                    return receipt_uuid
+                # Запасной вариант: совпадение по имени и сумме в узком временном окне
                 if income.get("name") == name and float(income.get("totalAmount", 0)) == float(amount):
                     receipt_uuid = income.get("approvedReceiptUuid")
-                    logging.info(f"✓ Чек найден в налоговой при верификации: {receipt_uuid}")
+                    logging.info(f"✓ Чек найден по имени+сумме при верификации: {receipt_uuid}")
                     return receipt_uuid
         except Exception as e:
             logging.error(f"Исключение при проверке чеков: {e}")
