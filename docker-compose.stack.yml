@@ -1,0 +1,23 @@
+services:
+  yookassa-to-mynalog:
+    image: yookassa-to-mynalog:latest
+    volumes:
+      - /opt/yookassa-to-mynalog/.env:/app/.env
+      - /opt/yookassa-to-mynalog/logs:/app/logs
+    secrets:
+      - yookassa_api_key
+      - moy_nalog_password
+    dns:
+      - 77.88.8.8
+      - 77.88.8.1
+    environment:
+      - PYTHONUNBUFFERED=1
+    deploy:
+      restart_policy:
+        condition: any
+
+secrets:
+  yookassa_api_key:
+    external: true
+  moy_nalog_password:
+    external: true

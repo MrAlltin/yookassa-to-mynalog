@@ -9,6 +9,9 @@ logs/
 # ENV files
 .env
 
+# Docker Secrets
+secrets/
+
 # IDE
 .vscode
 .idea
