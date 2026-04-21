@@ -2,7 +2,7 @@ services:
   yookassa-to-mynalog:
     container_name: yookassa-to-mynalog
     hostname: yookassa-to-mynalog
-    image: grandvan/yookassa-to-mynalog:latest
+    build: .
     restart: always
     volumes:
       - ./.env:/app/.env
