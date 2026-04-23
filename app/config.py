@@ -1,5 +1,6 @@
 import os
 import time
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -32,7 +33,7 @@ MOY_NALOG_PASSWORD = _read_secret("MOY_NALOG_PASSWORD", "moy_nalog_password")
 DEVICE_ID = os.getenv("DEVICE_ID")
 SYNC_START_DATE = os.getenv("SYNC_START_DATE")
 INCOME_DESCRIPTION_TEMPLATE = os.getenv("INCOME_DESCRIPTION_TEMPLATE", "Платеж #{description}")
-PAYMENT_TYPE = os.getenv("PAYMENT_TYPE", "ACCOUNT")
+PAYMENT_TYPE = os.getenv("PAYMENT_TYPE", "WIRE")
 CRON_SCHEDULE = os.getenv("CRON_SCHEDULE", "0 */4 * * *")
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")

@@ -1,14 +1,15 @@
-import pytest
-import httpx
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from unittest.mock import AsyncMock, MagicMock, patch
+
+import httpx
+import pytest
 
 
 def make_api():
     from nalog_api import MoyNalogAPI
     with patch("nalog_api.config") as cfg:
         cfg.DEVICE_ID = None
-        cfg.PAYMENT_TYPE = "ACCOUNT"
+        cfg.PAYMENT_TYPE = "WIRE"
         api = MoyNalogAPI("123456789012", "test_password")
     api.client = AsyncMock()
     return api
@@ -134,7 +135,7 @@ class TestAddIncome:
         date = datetime(2026, 1, 15, 10, 0, 0, tzinfo=timezone.utc)
 
         with patch("nalog_api.config") as cfg:
-            cfg.PAYMENT_TYPE = "ACCOUNT"
+            cfg.PAYMENT_TYPE = "WIRE"
             await api.add_income("Услуга", 500.0, date)
 
         assert captured["payload"]["paymentType"] == "ACCOUNT"
